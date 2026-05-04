@@ -6,6 +6,7 @@ import {
   Collection,
   Events,
   Interaction,
+  MessageFlags,
 } from 'discord.js';
 import chalk from 'chalk';
 import { DISCORD_TOKEN } from '../config';
@@ -68,11 +69,10 @@ async function main(): Promise<void> {
       await command.execute(interaction);
     } catch (err) {
       console.error(`[cmd:${interaction.commandName}]`, err);
-      const msg = { content: 'Something went wrong.', ephemeral: true };
       if (interaction.deferred || interaction.replied) {
-        await interaction.editReply(msg).catch(() => {});
+        await interaction.editReply({ content: 'Something went wrong.' }).catch(() => {});
       } else {
-        await interaction.reply(msg).catch(() => {});
+        await interaction.reply({ content: 'Something went wrong.', flags: MessageFlags.Ephemeral }).catch(() => {});
       }
     }
   });
