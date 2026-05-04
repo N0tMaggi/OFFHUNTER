@@ -7,21 +7,19 @@ export async function handleButton(interaction: ButtonInteraction): Promise<void
   const parts = interaction.customId.split(':');
   if (parts[0] !== 'oh' || parts.length < 3) return;
 
-  const action = parts[1]!;
+  const action   = parts[1]!;
   const cacheKey = parts[2]!;
 
   await interaction.deferUpdate();
 
   const entry = getPagination(cacheKey);
   if (!entry) {
-    await interaction.editReply({
-      ...buildErrorEmbed('This interaction has expired. Use `/deals` to search again.'),
-    });
+    await interaction.editReply(buildErrorEmbed('Interaction expired', 'Use `/deals` to search again.'));
     return;
   }
 
   const totalPages = Math.ceil(entry.offers.length / ITEMS_PER_PAGE);
-  const opts = { zipCode: entry.zipCode, retailers: entry.retailers, maxPrice: entry.maxPrice };
+  const opts       = { zipCode: entry.zipCode, retailers: entry.retailers, maxPrice: entry.maxPrice };
 
   if (action === 'prev') {
     const newPage = Math.max(0, entry.page - 1);
@@ -42,7 +40,7 @@ export async function handleButton(interaction: ButtonInteraction): Promise<void
       storePagination(cacheKey, { ...entry, offers: fresh, page: 0 });
       await interaction.editReply(buildDealResponse(entry.query, fresh, 0, cacheKey, opts));
     } catch {
-      await interaction.editReply(buildErrorEmbed('Failed to refresh deals. Please try again.'));
+      await interaction.editReply(buildErrorEmbed('Refresh failed', 'Could not reach marktguru. Try again.'));
     }
   }
 }

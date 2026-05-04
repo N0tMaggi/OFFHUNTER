@@ -7,6 +7,7 @@ import {
 } from 'discord.js';
 import prisma from '../../db';
 import { rescheduleGuild } from '../../scheduler';
+import { buildErrorEmbed } from '../embeds/dealEmbed';
 
 export const data = new SlashCommandBuilder()
   .setName('setup')
@@ -41,11 +42,11 @@ export const data = new SlashCommandBuilder()
 
 export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
   if (!interaction.guildId) {
-    await interaction.reply({ content: 'This command can only be used in a server.', flags: MessageFlags.Ephemeral });
+    await interaction.reply({ ...buildErrorEmbed('Server only', 'This command can only be used in a server.'), flags: MessageFlags.Ephemeral });
     return;
   }
 
-  const sub = interaction.options.getSubcommand();
+  const sub     = interaction.options.getSubcommand();
   const guildId = interaction.guildId;
 
   await interaction.deferReply({ flags: MessageFlags.Ephemeral });
@@ -53,19 +54,19 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
   if (sub === 'view') {
     const config = await prisma.guildConfig.findUnique({ where: { guildId } });
     if (!config) {
-      await interaction.editReply('No configuration found. Start with `/setup channel`.');
+      await interaction.editReply(buildErrorEmbed('No configuration found', 'Start with `/setup channel` to get going.'));
       return;
     }
     const embed = new EmbedBuilder()
       .setColor(0x5865f2)
-      .setTitle('⚙️  OFFHUNTER Configuration')
+      .setTitle('OFFHUNTER — Server Configuration')
       .addFields(
-        { name: 'Channel', value: `<#${config.channelId}>`, inline: true },
-        { name: 'Keywords', value: config.keywords, inline: true },
-        { name: 'Schedule', value: `\`${config.schedule}\``, inline: true },
-        { name: 'Postal Code', value: config.zipCode, inline: true },
-        { name: 'Retailers', value: config.retailers ?? 'All', inline: true },
-        { name: 'Max Price', value: config.maxPrice != null ? `${config.maxPrice.toFixed(2)} €` : 'No limit', inline: true },
+        { name: 'Channel',     value: `<#${config.channelId}>`,                                          inline: true },
+        { name: 'Keywords',    value: config.keywords,                                                   inline: true },
+        { name: 'Schedule',    value: `\`${config.schedule}\``,                                          inline: true },
+        { name: 'Postal code', value: config.zipCode,                                                    inline: true },
+        { name: 'Retailers',   value: config.retailers ?? 'All',                                         inline: true },
+        { name: 'Max price',   value: config.maxPrice != null ? `${config.maxPrice.toFixed(2)} €` : 'None', inline: true },
       )
       .setFooter({ text: 'Use /setup <subcommand> to change any value.' });
     await interaction.editReply({ embeds: [embed] });
@@ -75,7 +76,7 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
   if (sub === 'reset') {
     await prisma.guildConfig.deleteMany({ where: { guildId } });
     rescheduleGuild(guildId, null);
-    await interaction.editReply('Configuration cleared.');
+    await interaction.editReply({ content: 'Configuration cleared.' });
     return;
   }
 
@@ -84,47 +85,47 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
   if (sub === 'channel') {
     const channel = interaction.options.getChannel('channel', true);
     await prisma.guildConfig.upsert({
-      where: { guildId },
+      where:  { guildId },
       create: { guildId, channelId: channel.id, keywords: existing?.keywords ?? 'energy drink' },
       update: { channelId: channel.id },
     });
-    await interaction.editReply(`Channel set to <#${channel.id}>.`);
+    await interaction.editReply({ content: `Channel set to <#${channel.id}>.` });
     return;
   }
 
   if (!existing) {
-    await interaction.editReply('No configuration found. Start with `/setup channel`.');
+    await interaction.editReply(buildErrorEmbed('No configuration found', 'Start with `/setup channel` first.'));
     return;
   }
 
   if (sub === 'keywords') {
     const terms = interaction.options.getString('terms', true);
     await prisma.guildConfig.update({ where: { guildId }, data: { keywords: terms } });
-    await interaction.editReply(`Keywords updated to \`${terms}\`.`);
+    await interaction.editReply({ content: `Keywords updated to \`${terms}\`.` });
   } else if (sub === 'schedule') {
-    const cronExpr = interaction.options.getString('cron', true);
+    const expr = interaction.options.getString('cron', true);
     const { default: cron } = await import('node-cron');
-    if (!cron.validate(cronExpr)) {
-      await interaction.editReply('Invalid cron expression. Example: `0 8 * * *` (daily at 8am).');
+    if (!cron.validate(expr)) {
+      await interaction.editReply(buildErrorEmbed('Invalid cron expression', 'Example: `0 8 * * *` (daily at 8am)\nMore help: https://crontab.guru'));
       return;
     }
-    await prisma.guildConfig.update({ where: { guildId }, data: { schedule: cronExpr } });
+    await prisma.guildConfig.update({ where: { guildId }, data: { schedule: expr } });
     const updated = await prisma.guildConfig.findUnique({ where: { guildId } });
     rescheduleGuild(guildId, updated!);
-    await interaction.editReply(`Schedule updated to \`${cronExpr}\`.`);
+    await interaction.editReply({ content: `Schedule updated to \`${expr}\`.` });
   } else if (sub === 'zip') {
     const code = interaction.options.getString('code', true);
     await prisma.guildConfig.update({ where: { guildId }, data: { zipCode: code } });
-    await interaction.editReply(`Postal code set to \`${code}\`.`);
+    await interaction.editReply({ content: `Postal code set to \`${code}\`.` });
   } else if (sub === 'retailers') {
-    const list = interaction.options.getString('list', true).trim();
-    const value = list === '' ? null : list;
+    const raw   = interaction.options.getString('list', true).trim();
+    const value = raw === '' ? null : raw;
     await prisma.guildConfig.update({ where: { guildId }, data: { retailers: value } });
-    await interaction.editReply(`Retailer filter set to \`${value ?? 'all'}\`.`);
+    await interaction.editReply({ content: `Retailer filter set to \`${value ?? 'all'}\`.` });
   } else if (sub === 'maxprice') {
     const price = interaction.options.getNumber('price', true);
     const value = price <= 0 ? null : price;
     await prisma.guildConfig.update({ where: { guildId }, data: { maxPrice: value } });
-    await interaction.editReply(`Max price set to ${value != null ? `\`${value.toFixed(2)} €\`` : '`no limit`'}.`);
+    await interaction.editReply({ content: `Max price set to ${value != null ? `\`${value.toFixed(2)} €\`` : '`no limit`'}.` });
   }
 }
