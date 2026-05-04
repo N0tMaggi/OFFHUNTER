@@ -11,6 +11,8 @@
 
 A Discord bot that hunts deals from **marktguru.de** and posts them in your server — on demand or on a schedule. Supports pagination, savings display, product images, and per-server configuration.
 
+<img src="showcase.gif" alt="OFFHUNTER showcase" width="900">
+
 </div>
 
 ---
