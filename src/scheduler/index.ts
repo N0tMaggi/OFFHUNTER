@@ -1,8 +1,10 @@
 import cron, { ScheduledTask } from 'node-cron';
 import { Client, TextChannel } from 'discord.js';
 import { GuildConfig } from '@prisma/client';
+import { randomUUID } from 'crypto';
 import { fetchDeals } from '../marktguru/client';
-import { buildDealEmbed } from '../bot/embeds/dealEmbed';
+import { buildDealResponse } from '../bot/embeds/dealEmbed';
+import { storePagination } from '../bot/pagination';
 import prisma from '../db';
 
 const jobs = new Map<string, ScheduledTask>();
@@ -13,16 +15,15 @@ async function runJob(client: Client, config: GuildConfig): Promise<void> {
     if (!(channel instanceof TextChannel)) return;
 
     const keywords = config.keywords.split(',').map(k => k.trim());
+    const retailers = config.retailers ? config.retailers.split(',').map(r => r.trim()) : undefined;
+    const zipCode = parseInt(config.zipCode, 10);
+
     for (const keyword of keywords) {
-      const retailers = config.retailers ? config.retailers.split(',').map(r => r.trim()) : undefined;
-      const offers = await fetchDeals({
-        query: keyword,
-        zipCode: parseInt(config.zipCode, 10),
-        allowedRetailers: retailers,
-        maxPrice: config.maxPrice,
-      });
-      const embed = buildDealEmbed(keyword, offers);
-      await channel.send({ embeds: [embed] });
+      const offers = await fetchDeals({ query: keyword, zipCode, allowedRetailers: retailers, maxPrice: config.maxPrice });
+      const cacheKey = randomUUID();
+      storePagination(cacheKey, { offers, query: keyword, zipCode, retailers, maxPrice: config.maxPrice, page: 0 });
+      const response = buildDealResponse(keyword, offers, 0, cacheKey, { zipCode, retailers, maxPrice: config.maxPrice });
+      await channel.send(response);
     }
   } catch (err) {
     console.error(`[scheduler] Job failed for guild ${config.guildId}:`, err);
@@ -31,32 +32,24 @@ async function runJob(client: Client, config: GuildConfig): Promise<void> {
 
 export function rescheduleGuild(guildId: string, config: GuildConfig | null): void {
   const existing = jobs.get(guildId);
-  if (existing) {
-    existing.stop();
-    jobs.delete(guildId);
-  }
+  if (existing) { existing.stop(); jobs.delete(guildId); }
   if (!config) return;
 
-  // Skip registration if no client is available yet (called before bot is ready)
   const clientRef = (globalThis as typeof globalThis & { __offhunterClient?: Client }).__offhunterClient;
   if (!clientRef) return;
 
   if (!cron.validate(config.schedule)) {
-    console.warn(`[scheduler] Invalid cron expression for guild ${guildId}: ${config.schedule}`);
+    console.warn(`[scheduler] Invalid cron for guild ${guildId}: ${config.schedule}`);
     return;
   }
 
   const task = cron.schedule(config.schedule, () => runJob(clientRef, config));
   jobs.set(guildId, task);
-  console.log(`[scheduler] Registered job for guild ${guildId} with schedule "${config.schedule}"`);
 }
 
-export async function initScheduler(client: Client): Promise<void> {
+export async function initScheduler(client: Client): Promise<number> {
   (globalThis as typeof globalThis & { __offhunterClient: Client }).__offhunterClient = client;
-
   const configs = await prisma.guildConfig.findMany();
-  for (const config of configs) {
-    rescheduleGuild(config.guildId, config);
-  }
-  console.log(`[scheduler] Loaded ${configs.length} guild job(s).`);
+  for (const config of configs) rescheduleGuild(config.guildId, config);
+  return configs.length;
 }

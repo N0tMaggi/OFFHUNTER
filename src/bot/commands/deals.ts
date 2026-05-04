@@ -1,49 +1,51 @@
-import {
-  ChatInputCommandInteraction,
-  SlashCommandBuilder,
-} from 'discord.js';
+import { ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
 import { fetchDeals } from '../../marktguru/client';
-import { buildDealEmbed } from '../embeds/dealEmbed';
+import { buildDealResponse, buildErrorEmbed } from '../embeds/dealEmbed';
+import { storePagination } from '../pagination';
 import prisma from '../../db';
 
 export const data = new SlashCommandBuilder()
   .setName('deals')
-  .setDescription('Suche nach Angeboten auf marktguru.de')
+  .setDescription('Search for deals on marktguru.de')
   .addStringOption(o =>
-    o.setName('query').setDescription('Suchbegriff (z.B. "Red Bull")').setRequired(false))
+    o.setName('query').setDescription('Search term (e.g. "Red Bull")').setRequired(false))
   .addStringOption(o =>
-    o.setName('zip').setDescription('Postleitzahl (Standard: Servereinstellung)').setRequired(false))
+    o.setName('zip').setDescription('German postal code (default: server setting)').setRequired(false))
   .addStringOption(o =>
-    o.setName('retailers').setDescription('Händler, kommagetrennt (z.B. "lidl,rewe")').setRequired(false))
+    o.setName('retailers').setDescription('Filter by retailers, comma-separated (e.g. "lidl,rewe")').setRequired(false))
   .addNumberOption(o =>
-    o.setName('max_price').setDescription('Maximaler Preis in €').setRequired(false));
+    o.setName('max_price').setDescription('Maximum price in €').setRequired(false));
 
 export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
   await interaction.deferReply();
 
-  const guildId = interaction.guildId;
-  const config = guildId ? await prisma.guildConfig.findUnique({ where: { guildId } }) : null;
+  const config = interaction.guildId
+    ? await prisma.guildConfig.findUnique({ where: { guildId: interaction.guildId } })
+    : null;
 
   const query =
     interaction.options.getString('query') ??
     config?.keywords?.split(',')[0]?.trim() ??
     'energy drink';
 
-  const zipStr = interaction.options.getString('zip') ?? config?.zipCode ?? '60487';
-  const zip = parseInt(zipStr, 10);
+  const zipCode = parseInt(
+    interaction.options.getString('zip') ?? config?.zipCode ?? '60487',
+    10,
+  );
 
-  const retailersStr = interaction.options.getString('retailers') ?? config?.retailers ?? null;
-  const retailers = retailersStr ? retailersStr.split(',').map(r => r.trim()) : undefined;
+  const retailersRaw = interaction.options.getString('retailers') ?? config?.retailers ?? null;
+  const retailers = retailersRaw ? retailersRaw.split(',').map(r => r.trim()) : undefined;
 
   const maxPriceOpt = interaction.options.getNumber('max_price');
   const maxPrice = maxPriceOpt !== null ? maxPriceOpt : (config?.maxPrice ?? null);
 
   try {
-    const offers = await fetchDeals({ query, zipCode: zip, allowedRetailers: retailers, maxPrice });
-    const embed = buildDealEmbed(query, offers);
-    await interaction.editReply({ embeds: [embed] });
+    const offers = await fetchDeals({ query, zipCode, allowedRetailers: retailers, maxPrice });
+    const cacheKey = interaction.id;
+    storePagination(cacheKey, { offers, query, zipCode, retailers, maxPrice, page: 0 });
+    await interaction.editReply(buildDealResponse(query, offers, 0, cacheKey, { zipCode, retailers, maxPrice }));
   } catch (err) {
-    console.error('[deals] Error fetching offers:', err);
-    await interaction.editReply('Fehler beim Abrufen der Angebote. Bitte später erneut versuchen.');
+    console.error('[deals] Error:', err);
+    await interaction.editReply(buildErrorEmbed('Failed to fetch deals. Please try again later.'));
   }
 }
