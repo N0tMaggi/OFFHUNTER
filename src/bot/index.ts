@@ -11,7 +11,7 @@ import chalk from 'chalk';
 import { DISCORD_TOKEN } from '../config';
 import { initScheduler } from '../scheduler';
 import { handleButton } from './handlers/buttonHandler';
-import { printBanner, spin, success } from '../startup';
+import { printBanner, spin, stepDone, printDbStep, printReady } from '../startup';
 import prisma from '../db';
 import * as deals from './commands/deals';
 import * as setup from './commands/setup';
@@ -26,7 +26,8 @@ async function main(): Promise<void> {
 
   const dbSpinner = spin('Connecting to database...');
   await prisma.$connect();
-  dbSpinner.succeed(chalk.white('Database connected'));
+  dbSpinner.stop();
+  printDbStep();
 
   const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
@@ -36,25 +37,25 @@ async function main(): Promise<void> {
     const body = [...commands.values()].map(cmd => cmd.data.toJSON());
     try {
       await rest.put(Routes.applicationCommands(c.user.id), { body });
-      cmdSpinner.succeed(chalk.white(`Slash commands registered  (${commands.size})`));
+      cmdSpinner.stop();
+      stepDone('Commands', `${commands.size} registered`);
     } catch (err) {
-      cmdSpinner.fail('Failed to register slash commands');
+      cmdSpinner.fail(chalk.red('Failed to register slash commands'));
       console.error(err);
     }
 
-    const schedSpinner = spin('Loading scheduler...');
+    const schedSpinner = spin('Starting scheduler...');
     const count = await initScheduler(c);
-    schedSpinner.succeed(chalk.white(`Scheduler ready  (${count} guild${count !== 1 ? 's' : ''})`));
+    schedSpinner.stop();
+    stepDone('Scheduler', `${count} guild${count !== 1 ? 's' : ''} loaded`);
 
-    console.log('\n' + chalk.green('  ✔ ') + chalk.bold.white(`Online as ${c.user.tag}`) + '\n');
+    printReady(c.user.tag);
   });
 
   client.on(Events.InteractionCreate, async (interaction: Interaction) => {
     if (interaction.isButton()) {
-      try {
-        await handleButton(interaction);
-      } catch (err) {
-        console.error('[button] Error:', err);
+      try { await handleButton(interaction); } catch (err) {
+        console.error('[button]', err);
       }
       return;
     }
@@ -66,7 +67,7 @@ async function main(): Promise<void> {
     try {
       await command.execute(interaction);
     } catch (err) {
-      console.error(`[command:${interaction.commandName}] Error:`, err);
+      console.error(`[cmd:${interaction.commandName}]`, err);
       const msg = { content: 'Something went wrong.', ephemeral: true };
       if (interaction.deferred || interaction.replied) {
         await interaction.editReply(msg).catch(() => {});
@@ -81,13 +82,13 @@ async function main(): Promise<void> {
     await client.login(DISCORD_TOKEN);
     loginSpinner.stop();
   } catch (err) {
-    loginSpinner.fail('Login failed — check your DISCORD_TOKEN');
+    loginSpinner.fail(chalk.red('Login failed — check your DISCORD_TOKEN'));
     console.error(err);
     process.exit(1);
   }
 }
 
 main().catch(err => {
-  console.error(chalk.red('Fatal error:'), err);
+  console.error(chalk.red('\n  Fatal:'), err);
   process.exit(1);
 });
