@@ -1,0 +1,40 @@
+version: '3.9'
+
+services:
+  bot:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - db-data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles: ['postgres']
+
+  bot-sqlite:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - ./offhunter.db:/app/offhunter.db
+    profiles: ['sqlite']
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: offhunter
+      POSTGRES_PASSWORD: offhunter
+      POSTGRES_DB: offhunter
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U offhunter']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    profiles: ['postgres']
+
+volumes:
+  db-data:

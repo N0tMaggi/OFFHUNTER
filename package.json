@@ -1,0 +1,40 @@
+{
+  "name": "offhunter",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "tsx src/bot/index.ts",
+    "build": "tsc",
+    "start": "node dist/bot/index.js",
+    "db:migrate": "prisma migrate dev",
+    "db:generate": "prisma generate",
+    "db:studio": "prisma studio"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/N0tMaggi/OFFHUNTER.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/N0tMaggi/OFFHUNTER/issues"
+  },
+  "homepage": "https://github.com/N0tMaggi/OFFHUNTER#readme",
+  "dependencies": {
+    "@prisma/client": "^6.19.3",
+    "discord.js": "^14.26.4",
+    "dotenv": "^17.4.2",
+    "marktguru": "^0.0.6",
+    "node-cron": "^4.2.1",
+    "prisma": "^6.19.3"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "@types/node-cron": "^3.0.11",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.3"
+  }
+}

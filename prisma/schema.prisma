@@ -1,0 +1,25 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+// To switch databases, change the provider below and update DATABASE_URL in .env:
+//   sqlite    → DATABASE_URL="file:./offhunter.db"
+//   mysql     → DATABASE_URL="mysql://user:pass@host:3306/offhunter"
+//   postgresql → DATABASE_URL="postgresql://user:pass@host:5432/offhunter"
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model GuildConfig {
+  id        String   @id @default(cuid())
+  guildId   String   @unique
+  channelId String
+  keywords  String
+  schedule  String   @default("0 8 * * *")
+  zipCode   String   @default("60487")
+  retailers String?
+  maxPrice  Float?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
