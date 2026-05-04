@@ -8,45 +8,49 @@ import {
 import prisma from '../../db';
 import { rescheduleGuild } from '../../scheduler';
 import { buildErrorEmbed } from '../embeds/dealEmbed';
+import { locale } from '../../i18n';
+
+const { setup: cmd } = locale.commands;
+const { subs, errors } = cmd;
 
 export const data = new SlashCommandBuilder()
-  .setName('setup')
-  .setDescription('Configure OFFHUNTER for this server')
+  .setName(cmd.name)
+  .setDescription(cmd.description)
   .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
   .addSubcommand(s =>
-    s.setName('channel')
-      .setDescription('Set the channel for automatic deal posts')
-      .addChannelOption(o => o.setName('channel').setDescription('Target channel').setRequired(true)))
+    s.setName(subs.channel.name)
+      .setDescription(subs.channel.description)
+      .addChannelOption(o => o.setName('channel').setDescription(subs.channel.optDesc).setRequired(true)))
   .addSubcommand(s =>
-    s.setName('keywords')
-      .setDescription('Set search keywords (comma-separated)')
-      .addStringOption(o => o.setName('terms').setDescription('e.g. "energy drink, red bull"').setRequired(true)))
+    s.setName(subs.keywords.name)
+      .setDescription(subs.keywords.description)
+      .addStringOption(o => o.setName('terms').setDescription(subs.keywords.optDesc).setRequired(true)))
   .addSubcommand(s =>
-    s.setName('schedule')
-      .setDescription('Set posting schedule as a cron expression')
-      .addStringOption(o => o.setName('cron').setDescription('e.g. "0 8 * * *" = daily at 8am').setRequired(true)))
+    s.setName(subs.schedule.name)
+      .setDescription(subs.schedule.description)
+      .addStringOption(o => o.setName('cron').setDescription(subs.schedule.optDesc).setRequired(true)))
   .addSubcommand(s =>
-    s.setName('zip')
-      .setDescription('Set the postal code for deal searches')
-      .addStringOption(o => o.setName('code').setDescription('German postal code, e.g. 10115').setRequired(true)))
+    s.setName(subs.zip.name)
+      .setDescription(subs.zip.description)
+      .addStringOption(o => o.setName('code').setDescription(subs.zip.optDesc).setRequired(true)))
   .addSubcommand(s =>
-    s.setName('retailers')
-      .setDescription('Filter deals by retailer (comma-separated, leave empty for all)')
-      .addStringOption(o => o.setName('list').setDescription('e.g. "lidl, rewe, aldi-sued"').setRequired(true)))
+    s.setName(subs.retailers.name)
+      .setDescription(subs.retailers.description)
+      .addStringOption(o => o.setName('list').setDescription(subs.retailers.optDesc).setRequired(true)))
   .addSubcommand(s =>
-    s.setName('maxprice')
-      .setDescription('Set a maximum deal price in € (0 = no limit)')
-      .addNumberOption(o => o.setName('price').setDescription('Price in €').setRequired(true)))
+    s.setName(subs.maxprice.name)
+      .setDescription(subs.maxprice.description)
+      .addNumberOption(o => o.setName('price').setDescription(subs.maxprice.optDesc).setRequired(true)))
   .addSubcommand(s =>
-    s.setName('deallink')
-      .setDescription('Show or hide the external deal link button on results')
-      .addBooleanOption(o => o.setName('enabled').setDescription('Enable deal link button').setRequired(true)))
-  .addSubcommand(s => s.setName('view').setDescription('Show current configuration'))
-  .addSubcommand(s => s.setName('reset').setDescription('Clear all server configuration'));
+    s.setName(subs.deallink.name)
+      .setDescription(subs.deallink.description)
+      .addBooleanOption(o => o.setName('enabled').setDescription(subs.deallink.optDesc).setRequired(true)))
+  .addSubcommand(s => s.setName(subs.view.name).setDescription(subs.view.description))
+  .addSubcommand(s => s.setName(subs.reset.name).setDescription(subs.reset.description));
 
 export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
   if (!interaction.guildId) {
-    await interaction.reply({ ...buildErrorEmbed('Server only', 'This command can only be used in a server.'), flags: MessageFlags.Ephemeral });
+    await interaction.reply({ ...buildErrorEmbed(errors.serverOnly.title, errors.serverOnly.detail), flags: MessageFlags.Ephemeral });
     return;
   }
 
@@ -55,86 +59,87 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
 
   await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-  if (sub === 'view') {
+  if (sub === subs.view.name) {
     const config = await prisma.guildConfig.findUnique({ where: { guildId } });
     if (!config) {
-      await interaction.editReply(buildErrorEmbed('No configuration found', 'Start with `/setup channel` to get going.'));
+      await interaction.editReply(buildErrorEmbed(subs.view.noConfig, subs.view.noConfigDetail(cmd.name, subs.channel.name)));
       return;
     }
+    const f = subs.view.fields;
     const embed = new EmbedBuilder()
       .setColor(0x5865f2)
-      .setTitle('OFFHUNTER — Server Configuration')
+      .setTitle(subs.view.title)
       .addFields(
-        { name: 'Channel',     value: `<#${config.channelId}>`,                                          inline: true },
-        { name: 'Keywords',    value: config.keywords,                                                   inline: true },
-        { name: 'Schedule',    value: `\`${config.schedule}\``,                                          inline: true },
-        { name: 'Postal code', value: config.zipCode,                                                    inline: true },
-        { name: 'Retailers',   value: config.retailers ?? 'All',                                         inline: true },
-        { name: 'Max price',   value: config.maxPrice != null ? `${config.maxPrice.toFixed(2)} €` : 'None', inline: true },
-        { name: 'Deal link',   value: config.showDealLink ? 'Enabled' : 'Disabled',                         inline: true },
+        { name: f.channel,   value: `<#${config.channelId}>`,                                                    inline: true },
+        { name: f.keywords,  value: config.keywords,                                                              inline: true },
+        { name: f.schedule,  value: `\`${config.schedule}\``,                                                     inline: true },
+        { name: f.zip,       value: config.zipCode,                                                               inline: true },
+        { name: f.retailers, value: config.retailers ?? f.all,                                                    inline: true },
+        { name: f.maxPrice,  value: config.maxPrice != null ? `${config.maxPrice.toFixed(2)} €` : f.none,        inline: true },
+        { name: f.dealLink,  value: config.showDealLink ? f.enabled : f.disabled,                                inline: true },
       )
-      .setFooter({ text: 'Use /setup <subcommand> to change any value.' });
+      .setFooter({ text: subs.view.footer(cmd.name) });
     await interaction.editReply({ embeds: [embed] });
     return;
   }
 
-  if (sub === 'reset') {
+  if (sub === subs.reset.name) {
     await prisma.guildConfig.deleteMany({ where: { guildId } });
     rescheduleGuild(guildId, null);
-    await interaction.editReply({ content: 'Configuration cleared.' });
+    await interaction.editReply({ content: subs.reset.success });
     return;
   }
 
   const existing = await prisma.guildConfig.findUnique({ where: { guildId } });
 
-  if (sub === 'channel') {
+  if (sub === subs.channel.name) {
     const channel = interaction.options.getChannel('channel', true);
     await prisma.guildConfig.upsert({
       where:  { guildId },
       create: { guildId, channelId: channel.id, keywords: existing?.keywords ?? 'energy drink' },
       update: { channelId: channel.id },
     });
-    await interaction.editReply({ content: `Channel set to <#${channel.id}>.` });
+    await interaction.editReply({ content: subs.channel.success(channel.id) });
     return;
   }
 
   if (!existing) {
-    await interaction.editReply(buildErrorEmbed('No configuration found', 'Start with `/setup channel` first.'));
+    await interaction.editReply(buildErrorEmbed(errors.noConfig.title, errors.noConfig.detail(cmd.name, subs.channel.name)));
     return;
   }
 
-  if (sub === 'keywords') {
+  if (sub === subs.keywords.name) {
     const terms = interaction.options.getString('terms', true);
     await prisma.guildConfig.update({ where: { guildId }, data: { keywords: terms } });
-    await interaction.editReply({ content: `Keywords updated to \`${terms}\`.` });
-  } else if (sub === 'schedule') {
+    await interaction.editReply({ content: subs.keywords.success(terms) });
+  } else if (sub === subs.schedule.name) {
     const expr = interaction.options.getString('cron', true);
     const { default: cron } = await import('node-cron');
     if (!cron.validate(expr)) {
-      await interaction.editReply(buildErrorEmbed('Invalid cron expression', 'Example: `0 8 * * *` (daily at 8am)\nMore help: https://crontab.guru'));
+      await interaction.editReply(buildErrorEmbed('Invalid cron expression', subs.schedule.invalid));
       return;
     }
     await prisma.guildConfig.update({ where: { guildId }, data: { schedule: expr } });
     const updated = await prisma.guildConfig.findUnique({ where: { guildId } });
     rescheduleGuild(guildId, updated!);
-    await interaction.editReply({ content: `Schedule updated to \`${expr}\`.` });
-  } else if (sub === 'zip') {
+    await interaction.editReply({ content: subs.schedule.success(expr) });
+  } else if (sub === subs.zip.name) {
     const code = interaction.options.getString('code', true);
     await prisma.guildConfig.update({ where: { guildId }, data: { zipCode: code } });
-    await interaction.editReply({ content: `Postal code set to \`${code}\`.` });
-  } else if (sub === 'retailers') {
+    await interaction.editReply({ content: subs.zip.success(code) });
+  } else if (sub === subs.retailers.name) {
     const raw   = interaction.options.getString('list', true).trim();
     const value = raw === '' ? null : raw;
     await prisma.guildConfig.update({ where: { guildId }, data: { retailers: value } });
-    await interaction.editReply({ content: `Retailer filter set to \`${value ?? 'all'}\`.` });
-  } else if (sub === 'deallink') {
+    await interaction.editReply({ content: value ? subs.retailers.success(value) : subs.retailers.cleared });
+  } else if (sub === subs.deallink.name) {
     const enabled = interaction.options.getBoolean('enabled', true);
     await prisma.guildConfig.update({ where: { guildId }, data: { showDealLink: enabled } });
-    await interaction.editReply({ content: `Deal link button ${enabled ? 'enabled' : 'disabled'}.` });
-  } else if (sub === 'maxprice') {
+    await interaction.editReply({ content: enabled ? subs.deallink.enabled : subs.deallink.disabled });
+  } else if (sub === subs.maxprice.name) {
     const price = interaction.options.getNumber('price', true);
     const value = price <= 0 ? null : price;
     await prisma.guildConfig.update({ where: { guildId }, data: { maxPrice: value } });
-    await interaction.editReply({ content: `Max price set to ${value != null ? `\`${value.toFixed(2)} €\`` : '`no limit`'}.` });
+    await interaction.editReply({ content: value != null ? subs.maxprice.success(value.toFixed(2)) : subs.maxprice.cleared });
   }
 }

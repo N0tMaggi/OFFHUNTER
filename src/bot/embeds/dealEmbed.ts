@@ -6,6 +6,7 @@ import {
 } from 'discord.js';
 import { Offer } from '../../marktguru/client';
 import { ITEMS_PER_PAGE } from '../pagination';
+import { locale } from '../../i18n';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
                  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -28,7 +29,6 @@ function offerBlock(offer: Offer, n: number): string {
   const product = offer.product?.name ?? offer.description;
   const dates   = offer.validityDates[0];
 
-  // Price line
   let price = `**${fmtPrice(offer.price)}**`;
   if (offer.oldPrice != null) {
     price = `~~${fmtPrice(offer.oldPrice)}~~  ${price}  (${savingsPct(offer.price, offer.oldPrice)})`;
@@ -37,10 +37,9 @@ function offerBlock(offer: Offer, n: number): string {
     price += `   ${fmtPrice(offer.referencePrice)}/${offer.unit.shortName}`;
   }
 
-  // Secondary line
   const secondary: string[] = [];
   if (dates) secondary.push(`${fmtDate(dates.from)} – ${fmtDate(dates.to)}`);
-  if (offer.requiresLoyalityMembership) secondary.push('loyalty card required');
+  if (offer.requiresLoyalityMembership) secondary.push(locale.embeds.deals.loyaltyRequired);
 
   const line2 = secondary.join('  ·  ');
 
@@ -73,14 +72,15 @@ export function buildDealResponse(
   const p     = Math.min(page, totalPages - 1);
   const slice = offers.slice(p * ITEMS_PER_PAGE, (p + 1) * ITEMS_PER_PAGE);
   const off   = p * ITEMS_PER_PAGE;
+  const t     = locale.embeds.deals;
 
   if (offers.length === 0) {
     return {
       embeds: [
         new EmbedBuilder()
           .setColor(0x2b2d31)
-          .setTitle(`${query}`)
-          .setDescription('No deals found. Try a different keyword or adjust your filters.')
+          .setTitle(query)
+          .setDescription(t.noResults)
           .setFooter({ text: 'marktguru.de' })
           .setTimestamp(),
       ],
@@ -88,43 +88,42 @@ export function buildDealResponse(
     };
   }
 
-  // Metadata header
   const zip       = opts.zipCode ?? 60487;
-  const retailers = opts.retailers?.length ? opts.retailers.join(', ') : 'all retailers';
+  const retailers = opts.retailers?.length ? opts.retailers.join(', ') : t.allRetailers;
   const maxPrice  = opts.maxPrice != null ? `  ·  max ${fmtPrice(opts.maxPrice)}` : '';
   const meta      = `${zip}  ·  ${retailers}${maxPrice}`;
 
-  const blocks = slice.map((o, i) => offerBlock(o, off + i + 1));
+  const blocks      = slice.map((o, i) => offerBlock(o, off + i + 1));
   const description = `${meta}\n\n${blocks.join('\n\n')}`;
 
-  // Thumbnail — first product image on this page
   const thumb = slice.find(o => o.images?.urls?.medium)?.images?.urls?.medium ?? null;
 
   const embed = new EmbedBuilder()
     .setColor(0x57f287)
-    .setTitle(`${query}  —  ${offers.length} deal${offers.length !== 1 ? 's' : ''} found`)
+    .setTitle(t.title(query, offers.length))
     .setDescription(description)
-    .setFooter({ text: `${p + 1} / ${totalPages}  ·  marktguru.de` })
+    .setFooter({ text: t.pageFooter(p + 1, totalPages) })
     .setTimestamp();
 
   if (thumb) embed.setThumbnail(thumb);
 
-  // Buttons
+  const { buttons: btn } = locale;
+
   const prev = new ButtonBuilder()
     .setCustomId(`oh:prev:${cacheKey}`)
-    .setLabel('Prev')
+    .setLabel(btn.prev)
     .setStyle(ButtonStyle.Secondary)
     .setDisabled(p === 0);
 
   const next = new ButtonBuilder()
     .setCustomId(`oh:next:${cacheKey}`)
-    .setLabel('Next')
+    .setLabel(btn.next)
     .setStyle(ButtonStyle.Secondary)
     .setDisabled(p >= totalPages - 1);
 
   const refresh = new ButtonBuilder()
     .setCustomId(`oh:ref:${cacheKey}`)
-    .setLabel('Refresh')
+    .setLabel(btn.refresh)
     .setStyle(ButtonStyle.Primary);
 
   const btns: ButtonBuilder[] = [prev, next, refresh];
@@ -134,7 +133,7 @@ export function buildDealResponse(
     if (viewUrl) {
       btns.push(
         new ButtonBuilder()
-          .setLabel('View Deal')
+          .setLabel(btn.viewDeal)
           .setStyle(ButtonStyle.Link)
           .setURL(viewUrl),
       );

@@ -2,6 +2,7 @@ import { ButtonInteraction } from 'discord.js';
 import { getPagination, storePagination, updatePaginationPage, ITEMS_PER_PAGE } from '../pagination';
 import { buildDealResponse, buildErrorEmbed } from '../embeds/dealEmbed';
 import { fetchDeals } from '../../marktguru/client';
+import { locale } from '../../i18n';
 
 export async function handleButton(interaction: ButtonInteraction): Promise<void> {
   const parts = interaction.customId.split(':');
@@ -14,7 +15,8 @@ export async function handleButton(interaction: ButtonInteraction): Promise<void
 
   const entry = getPagination(cacheKey);
   if (!entry) {
-    await interaction.editReply(buildErrorEmbed('Interaction expired', 'Use `/deals` to search again.'));
+    const e = locale.embeds.errors.interactionExpired;
+    await interaction.editReply(buildErrorEmbed(e.title, e.detail(locale.commands.deals.name)));
     return;
   }
 
@@ -40,7 +42,8 @@ export async function handleButton(interaction: ButtonInteraction): Promise<void
       storePagination(cacheKey, { ...entry, offers: fresh, page: 0, showDealLink: entry.showDealLink });
       await interaction.editReply(buildDealResponse(entry.query, fresh, 0, cacheKey, opts));
     } catch {
-      await interaction.editReply(buildErrorEmbed('Refresh failed', 'Could not reach marktguru. Try again.'));
+      const e = locale.embeds.errors.refreshFailed;
+      await interaction.editReply(buildErrorEmbed(e.title, e.detail));
     }
   }
 }

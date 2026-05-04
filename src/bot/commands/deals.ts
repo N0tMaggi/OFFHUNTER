@@ -2,19 +2,22 @@ import { ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
 import { fetchDeals } from '../../marktguru/client';
 import { buildDealResponse, buildErrorEmbed } from '../embeds/dealEmbed';
 import { storePagination } from '../pagination';
+import { locale } from '../../i18n';
 import prisma from '../../db';
 
+const { deals: cmd } = locale.commands;
+
 export const data = new SlashCommandBuilder()
-  .setName('deals')
-  .setDescription('Search for deals on marktguru.de')
+  .setName(cmd.name)
+  .setDescription(cmd.description)
   .addStringOption(o =>
-    o.setName('query').setDescription('Search term, e.g. "Red Bull"').setRequired(false))
+    o.setName('query').setDescription(cmd.options.query).setRequired(false))
   .addStringOption(o =>
-    o.setName('zip').setDescription('German postal code (default: server setting)').setRequired(false))
+    o.setName('zip').setDescription(cmd.options.zip).setRequired(false))
   .addStringOption(o =>
-    o.setName('retailers').setDescription('Comma-separated retailer filter, e.g. "lidl,rewe"').setRequired(false))
+    o.setName('retailers').setDescription(cmd.options.retailers).setRequired(false))
   .addNumberOption(o =>
-    o.setName('max_price').setDescription('Maximum price in €').setRequired(false));
+    o.setName('max_price').setDescription(cmd.options.max_price).setRequired(false));
 
 export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
   await interaction.deferReply();
@@ -46,6 +49,7 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
     await interaction.editReply(buildDealResponse(query, offers, 0, cacheKey, { zipCode, retailers, maxPrice, showDealLink }));
   } catch (err) {
     console.error('[deals]', err);
-    await interaction.editReply(buildErrorEmbed('Failed to fetch deals', 'The marktguru API may be temporarily unavailable. Try again in a moment.'));
+    const e = locale.embeds.errors.fetchFailed;
+    await interaction.editReply(buildErrorEmbed(e.title, e.detail));
   }
 }
