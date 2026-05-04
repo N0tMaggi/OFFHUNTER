@@ -19,7 +19,8 @@ model GuildConfig {
   schedule  String   @default("0 8 * * *")
   zipCode   String   @default("60487")
   retailers String?
-  maxPrice  Float?
-  createdAt DateTime @default(now())
+  maxPrice     Float?
+  showDealLink Boolean  @default(false)
+  createdAt    DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

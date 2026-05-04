@@ -39,10 +39,11 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
   const maxPrice    = maxPriceOpt !== null ? maxPriceOpt : (config?.maxPrice ?? null);
 
   try {
-    const offers   = await fetchDeals({ query, zipCode, allowedRetailers: retailers, maxPrice });
-    const cacheKey = interaction.id;
-    storePagination(cacheKey, { offers, query, zipCode, retailers, maxPrice, page: 0 });
-    await interaction.editReply(buildDealResponse(query, offers, 0, cacheKey, { zipCode, retailers, maxPrice }));
+    const offers       = await fetchDeals({ query, zipCode, allowedRetailers: retailers, maxPrice });
+    const showDealLink = config?.showDealLink ?? false;
+    const cacheKey     = interaction.id;
+    storePagination(cacheKey, { offers, query, zipCode, retailers, maxPrice, showDealLink, page: 0 });
+    await interaction.editReply(buildDealResponse(query, offers, 0, cacheKey, { zipCode, retailers, maxPrice, showDealLink }));
   } catch (err) {
     console.error('[deals]', err);
     await interaction.editReply(buildErrorEmbed('Failed to fetch deals', 'The marktguru API may be temporarily unavailable. Try again in a moment.'));

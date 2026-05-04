@@ -10,6 +10,7 @@ export interface PaginationEntry {
   zipCode: number;
   retailers?: string[];
   maxPrice: number | null;
+  showDealLink: boolean;
   page: number;
   expiresAt: number;
 }

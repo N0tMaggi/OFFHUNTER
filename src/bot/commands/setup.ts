@@ -37,6 +37,10 @@ export const data = new SlashCommandBuilder()
     s.setName('maxprice')
       .setDescription('Set a maximum deal price in € (0 = no limit)')
       .addNumberOption(o => o.setName('price').setDescription('Price in €').setRequired(true)))
+  .addSubcommand(s =>
+    s.setName('deallink')
+      .setDescription('Show or hide the external deal link button on results')
+      .addBooleanOption(o => o.setName('enabled').setDescription('Enable deal link button').setRequired(true)))
   .addSubcommand(s => s.setName('view').setDescription('Show current configuration'))
   .addSubcommand(s => s.setName('reset').setDescription('Clear all server configuration'));
 
@@ -67,6 +71,7 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
         { name: 'Postal code', value: config.zipCode,                                                    inline: true },
         { name: 'Retailers',   value: config.retailers ?? 'All',                                         inline: true },
         { name: 'Max price',   value: config.maxPrice != null ? `${config.maxPrice.toFixed(2)} €` : 'None', inline: true },
+        { name: 'Deal link',   value: config.showDealLink ? 'Enabled' : 'Disabled',                         inline: true },
       )
       .setFooter({ text: 'Use /setup <subcommand> to change any value.' });
     await interaction.editReply({ embeds: [embed] });
@@ -122,6 +127,10 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
     const value = raw === '' ? null : raw;
     await prisma.guildConfig.update({ where: { guildId }, data: { retailers: value } });
     await interaction.editReply({ content: `Retailer filter set to \`${value ?? 'all'}\`.` });
+  } else if (sub === 'deallink') {
+    const enabled = interaction.options.getBoolean('enabled', true);
+    await prisma.guildConfig.update({ where: { guildId }, data: { showDealLink: enabled } });
+    await interaction.editReply({ content: `Deal link button ${enabled ? 'enabled' : 'disabled'}.` });
   } else if (sub === 'maxprice') {
     const price = interaction.options.getNumber('price', true);
     const value = price <= 0 ? null : price;

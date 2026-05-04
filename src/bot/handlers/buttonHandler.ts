@@ -19,7 +19,7 @@ export async function handleButton(interaction: ButtonInteraction): Promise<void
   }
 
   const totalPages = Math.ceil(entry.offers.length / ITEMS_PER_PAGE);
-  const opts       = { zipCode: entry.zipCode, retailers: entry.retailers, maxPrice: entry.maxPrice };
+  const opts       = { zipCode: entry.zipCode, retailers: entry.retailers, maxPrice: entry.maxPrice, showDealLink: entry.showDealLink };
 
   if (action === 'prev') {
     const newPage = Math.max(0, entry.page - 1);
@@ -37,7 +37,7 @@ export async function handleButton(interaction: ButtonInteraction): Promise<void
         allowedRetailers: entry.retailers,
         maxPrice: entry.maxPrice,
       });
-      storePagination(cacheKey, { ...entry, offers: fresh, page: 0 });
+      storePagination(cacheKey, { ...entry, offers: fresh, page: 0, showDealLink: entry.showDealLink });
       await interaction.editReply(buildDealResponse(entry.query, fresh, 0, cacheKey, opts));
     } catch {
       await interaction.editReply(buildErrorEmbed('Refresh failed', 'Could not reach marktguru. Try again.'));

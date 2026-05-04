@@ -20,9 +20,10 @@ async function runJob(client: Client, config: GuildConfig): Promise<void> {
 
     for (const keyword of keywords) {
       const offers = await fetchDeals({ query: keyword, zipCode, allowedRetailers: retailers, maxPrice: config.maxPrice });
-      const cacheKey = randomUUID();
-      storePagination(cacheKey, { offers, query: keyword, zipCode, retailers, maxPrice: config.maxPrice, page: 0 });
-      const response = buildDealResponse(keyword, offers, 0, cacheKey, { zipCode, retailers, maxPrice: config.maxPrice });
+      const cacheKey     = randomUUID();
+      const showDealLink = config.showDealLink;
+      storePagination(cacheKey, { offers, query: keyword, zipCode, retailers, maxPrice: config.maxPrice, showDealLink, page: 0 });
+      const response = buildDealResponse(keyword, offers, 0, cacheKey, { zipCode, retailers, maxPrice: config.maxPrice, showDealLink });
       await channel.send(response);
     }
   } catch (err) {

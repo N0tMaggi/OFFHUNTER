@@ -59,6 +59,7 @@ export interface DealResponseOptions {
   zipCode?: number;
   retailers?: string[];
   maxPrice?: number | null;
+  showDealLink?: boolean;
 }
 
 export function buildDealResponse(
@@ -126,7 +127,21 @@ export function buildDealResponse(
     .setLabel('Refresh')
     .setStyle(ButtonStyle.Primary);
 
-  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(prev, next, refresh);
+  const btns: ButtonBuilder[] = [prev, next, refresh];
+
+  if (opts.showDealLink) {
+    const viewUrl = slice.find(o => o.externalUrl)?.externalUrl;
+    if (viewUrl) {
+      btns.push(
+        new ButtonBuilder()
+          .setLabel('View Deal')
+          .setStyle(ButtonStyle.Link)
+          .setURL(viewUrl),
+      );
+    }
+  }
+
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(...btns);
   return { embeds: [embed], components: [row] };
 }
 
