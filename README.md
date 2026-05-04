@@ -57,6 +57,7 @@ Each result shows the current price, original price with savings percentage if o
 | `zip <code>` | Postal code | `/setup zip 10115` |
 | `retailers <list>` | Retailer allowlist | `/setup retailers lidl, aldi-sued` |
 | `maxprice <price>` | Max price in € — 0 for no limit | `/setup maxprice 1.50` |
+| `deallink <true\|false>` | Show a "View Deal" button on embeds (off by default — marktguru links route through ad trackers) | `/setup deallink true` |
 | `view` | Show current config | `/setup view` |
 | `reset` | Clear all config | `/setup reset` |
 
