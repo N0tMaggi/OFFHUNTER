@@ -126,19 +126,7 @@ export function buildDealResponse(
     .setLabel('Refresh')
     .setStyle(ButtonStyle.Primary);
 
-  const btns: ButtonBuilder[] = [prev, next, refresh];
-
-  const viewUrl = slice.find(o => o.externalUrl)?.externalUrl;
-  if (viewUrl) {
-    btns.push(
-      new ButtonBuilder()
-        .setLabel('View Deal')
-        .setStyle(ButtonStyle.Link)
-        .setURL(viewUrl),
-    );
-  }
-
-  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(...btns);
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(prev, next, refresh);
   return { embeds: [embed], components: [row] };
 }
 
