@@ -13,6 +13,7 @@ RUN npm ci --omit=dev
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY prisma ./prisma
+COPY prisma.config.ts ./prisma.config.ts
 
 ENV NODE_ENV=production
 CMD ["sh", "-c", "npx prisma migrate deploy && node dist/bot/index.js"]
