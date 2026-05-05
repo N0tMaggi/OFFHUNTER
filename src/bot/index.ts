@@ -16,10 +16,11 @@ import { printBanner, spin, stepDone, printDbStep, printReady } from '../startup
 import prisma from '../db';
 import * as deals from './commands/deals';
 import * as setup from './commands/setup';
+import { locale } from '../i18n';
 
 const commands = new Collection([
-  ['deals', { data: deals.data, execute: deals.execute }],
-  ['setup', { data: setup.data, execute: setup.execute }],
+  [locale.commands.deals.name, { data: deals.data, execute: deals.execute }],
+  [locale.commands.setup.name, { data: setup.data, execute: setup.execute }],
 ]);
 
 async function main(): Promise<void> {
