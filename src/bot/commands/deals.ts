@@ -1,9 +1,9 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
-import { fetchDeals } from '../../marktguru/client';
-import { buildDealResponse, buildErrorEmbed } from '../embeds/dealEmbed';
-import { storePagination } from '../pagination';
-import { locale } from '../../i18n';
-import prisma from '../../db';
+import { fetchDeals } from '../../marktguru/client.js';
+import { buildDealResponse, buildErrorEmbed } from '../embeds/dealEmbed.js';
+import { storePagination } from '../pagination.js';
+import { locale } from '../../i18n/index.js';
+import prisma from '../../db/index.js';
 
 const { deals: cmd } = locale.commands;
 

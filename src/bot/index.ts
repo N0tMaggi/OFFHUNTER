@@ -9,14 +9,14 @@ import {
   MessageFlags,
 } from 'discord.js';
 import chalk from 'chalk';
-import { DISCORD_TOKEN } from '../config';
-import { initScheduler } from '../scheduler';
-import { handleButton } from './handlers/buttonHandler';
-import { printBanner, spin, stepDone, printDbStep, printReady } from '../startup';
-import prisma from '../db';
-import * as deals from './commands/deals';
-import * as setup from './commands/setup';
-import { locale } from '../i18n';
+import { DISCORD_TOKEN } from '../config.js';
+import { initScheduler } from '../scheduler/index.js';
+import { handleButton } from './handlers/buttonHandler.js';
+import { printBanner, spin, stepDone, printDbStep, printReady } from '../startup.js';
+import prisma from '../db/index.js';
+import * as deals from './commands/deals.js';
+import * as setup from './commands/setup.js';
+import { locale } from '../i18n/index.js';
 
 const commands = new Collection([
   [locale.commands.deals.name, { data: deals.data, execute: deals.execute }],

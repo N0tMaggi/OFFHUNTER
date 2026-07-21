@@ -1,6 +1,5 @@
 import { search } from 'marktguru';
-import { marktguru } from 'marktguru/src/@types/marktguru';
-import { DEFAULT_ZIP } from '../config';
+import { DEFAULT_ZIP } from '../config.js';
 
 export interface SearchParams {
   query: string;
@@ -10,12 +9,12 @@ export interface SearchParams {
   limit?: number;
 }
 
-export type Offer = marktguru.Offer;
+export type Offer = Awaited<ReturnType<typeof search>>[number];
 
 export async function fetchDeals(params: SearchParams): Promise<Offer[]> {
   const results = await search(params.query, {
     zipCode: params.zipCode ?? DEFAULT_ZIP,
-    allowedRetailers: params.allowedRetailers as marktguru.Retailer[] | undefined,
+    allowedRetailers: params.allowedRetailers,
     limit: params.limit ?? 50,
   });
 

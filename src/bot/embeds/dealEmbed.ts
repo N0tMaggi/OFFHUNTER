@@ -4,9 +4,9 @@ import {
   ButtonStyle,
   ActionRowBuilder,
 } from 'discord.js';
-import { Offer } from '../../marktguru/client';
-import { ITEMS_PER_PAGE } from '../pagination';
-import { locale } from '../../i18n';
+import { Offer } from '../../marktguru/client.js';
+import { ITEMS_PER_PAGE } from '../pagination.js';
+import { locale } from '../../i18n/index.js';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
                  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];

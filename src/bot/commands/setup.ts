@@ -5,10 +5,10 @@ import {
   EmbedBuilder,
   MessageFlags,
 } from 'discord.js';
-import prisma from '../../db';
-import { rescheduleGuild } from '../../scheduler';
-import { buildErrorEmbed } from '../embeds/dealEmbed';
-import { locale } from '../../i18n';
+import prisma from '../../db/index.js';
+import { rescheduleGuild } from '../../scheduler/index.js';
+import { buildErrorEmbed } from '../embeds/dealEmbed.js';
+import { locale } from '../../i18n/index.js';
 
 const { setup: cmd } = locale.commands;
 const { subs, errors } = cmd;

@@ -2,10 +2,10 @@ import cron, { ScheduledTask } from 'node-cron';
 import { Client, TextChannel } from 'discord.js';
 import { GuildConfig } from '@prisma/client';
 import { randomUUID } from 'crypto';
-import { fetchDeals } from '../marktguru/client';
-import { buildDealResponse } from '../bot/embeds/dealEmbed';
-import { storePagination } from '../bot/pagination';
-import prisma from '../db';
+import { fetchDeals } from '../marktguru/client.js';
+import { buildDealResponse } from '../bot/embeds/dealEmbed.js';
+import { storePagination } from '../bot/pagination.js';
+import prisma from '../db/index.js';
 
 const jobs = new Map<string, ScheduledTask>();
 

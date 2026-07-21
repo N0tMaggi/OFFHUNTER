@@ -1,4 +1,4 @@
-import { Offer } from '../marktguru/client';
+import { Offer } from '../marktguru/client.js';
 
 export const ITEMS_PER_PAGE = 5;
 const TTL_MS = 30 * 60 * 1000;

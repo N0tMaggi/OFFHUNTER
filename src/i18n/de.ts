@@ -1,4 +1,4 @@
-import { LocaleData } from './types';
+import { LocaleData } from './types.js';
 
 const de: LocaleData = {
   commands: {

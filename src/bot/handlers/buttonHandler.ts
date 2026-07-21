@@ -1,8 +1,8 @@
 import { ButtonInteraction } from 'discord.js';
-import { getPagination, storePagination, updatePaginationPage, ITEMS_PER_PAGE } from '../pagination';
-import { buildDealResponse, buildErrorEmbed } from '../embeds/dealEmbed';
-import { fetchDeals } from '../../marktguru/client';
-import { locale } from '../../i18n';
+import { getPagination, storePagination, updatePaginationPage, ITEMS_PER_PAGE } from '../pagination.js';
+import { buildDealResponse, buildErrorEmbed } from '../embeds/dealEmbed.js';
+import { fetchDeals } from '../../marktguru/client.js';
+import { locale } from '../../i18n/index.js';
 
 export async function handleButton(interaction: ButtonInteraction): Promise<void> {
   const parts = interaction.customId.split(':');
